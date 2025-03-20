@@ -1,6 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count
 from datetime import datetime
+from boto3_client import s3_client  # 📌 Importar cliente S3 desde boto3_client.py
 
 # Iniciar sesión en Spark
 spark = SparkSession.builder.appName("VideoAnalytics").getOrCreate()

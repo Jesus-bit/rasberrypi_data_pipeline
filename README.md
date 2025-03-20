@@ -1,73 +1,89 @@
----
+# 📌 Video Analytics System with Raspberry Pi, FastAPI, Airflow, PySpark, and Snowflake
 
-## ✅ Pipeline Stages
+## 📝 Description
+This project is a complete video analytics system that:
+- **Caches videos on a Raspberry Pi** for a single user.
+- **Logs user interactions** and uploads them daily to an S3 bucket.
+- **Triggers Airflow DAGs** when no login is detected for a set number of days.
+- **Runs PySpark ETL** to process the logs.
+- **Stores processed data in Snowflake** for AI training and analytics.
 
-### 1️⃣ Extract Logs
-- Connect to S3 bucket.
-- Download all `.log` files from the `raw-logs` folder.
-
-### 2️⃣ Transform Logs
-- Filter only lines with `ERROR` or `500` status codes.
-- Store the filtered logs in-memory.
-
-### 3️⃣ Load Logs
-- Upload the filtered logs to the `processed-logs` folder in the same bucket.
-
----
-
-## 🛠️ Technology Stack
-- **Airflow DAGs** for pipeline coordination.
-- **Python (Boto3)** for S3 interaction.
-- **Docker** for Airflow environment.
-- **GitHub Actions / GitLab CI/CD** for deployment.
-
----
-
-## 🛠️ Installation Guide
-
-### 1️⃣ Install Docker and Docker Compose
-Ensure Docker is installed on your machine. If not, install it from [Docker Official Site](https://www.docker.com/).
-
-### 2️⃣ Clone the Repository
+## 🏗️ Architecture
 ```
-git clone https://github.com/your-repo/my_s3_airflow_pipeline.git
-cd my_s3_airflow_pipeline
+ User ↔ Raspberry Pi (Cache) ↔ FastAPI Backend → S3 (Logs) → Airflow (Trigger) → PySpark (ETL) → S3 (Processed Data) → Snowflake
 ```
 
-### 3️⃣ Set up AWS Credentials
-Configure your AWS credentials in `cloud/aws/s3_config.json`.
+## 🚀 Installation & Setup
 
-### 4️⃣ Start Airflow with Docker Compose
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/yourusername/video-analytics-system.git
+cd video-analytics-system
 ```
-cd airflow
-docker-compose up -d
+
+### 2️⃣ Set Up the Raspberry Pi Cache
+Install **FastAPI** on the Raspberry Pi:
+```bash
+pip install fastapi uvicorn boto3
+```
+Start the backend:
+```bash
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
 ```
 
-### 5️⃣ Access Airflow UI
-Visit `http://localhost:8080` and activate the DAG `s3_etl_pipeline`.
+### 3️⃣ Configure S3 Bucket
+Create an S3 bucket and update your `.env` file:
+```
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+S3_BUCKET=your_bucket_name
+```
 
----
+### 4️⃣ Set Up Airflow
+Install Airflow and dependencies:
+```bash
+pip install apache-airflow boto3 snowflake-connector-python
+```
+Start Airflow:
+```bash
+airflow db init
+airflow scheduler & airflow webserver
+```
 
-## 🚀 Deployment on Cloud
+### 5️⃣ Deploy PySpark
+Install dependencies and run Spark jobs:
+```bash
+pip install pyspark
+spark-submit pyspark_etl/process_videos.py
+```
 
-### 1️⃣ Deploy to AWS Managed Airflow
-- Push the DAG to S3 bucket assigned to AWS Managed Airflow.
+### 6️⃣ Set Up Snowflake Connection
+Update `airflow/dags/upload_snowflake.py` with:
+```
+SNOWFLAKE_USER=your_user
+SNOWFLAKE_PASSWORD=your_password
+SNOWFLAKE_ACCOUNT=your_account
+```
 
-### 2️⃣ Deploy to Cloud Composer (GCP)
-- Upload the DAG to the DAG bucket in Cloud Composer.
+## 📌 Data Flow
+1. **Raspberry Pi** caches videos & logs interactions.
+2. **Logs are sent to S3** daily.
+3. **Airflow triggers PySpark ETL** if no login is detected.
+4. **PySpark processes logs** and stores results in S3.
+5. **Processed data is uploaded to Snowflake**.
+6. **AI models are trained using Snowflake data**.
 
----
+## 🏃 Running the System
+- **Start Raspberry Pi backend**: `uvicorn backend.main:app --reload`
+- **Manually run the ETL**:
+  ```bash
+  airflow dags trigger etl_s3_to_snowflake
+  ```
+- **Run PySpark locally**:
+  ```bash
+  spark-submit pyspark_etl/process_videos.py
+  ```
 
-## 📈 Airflow DAG Code
-```python
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from datetime import datetime
-import boto3
-import pandas as pd
-import io
-
-# AWS S3 Configuration
-BUCKET_NAME = 'my-bucket'
-RAW_LOGS_FOLDER = 'raw-logs/'
-PROCESSED_LOGS_FOLDER = 'processed-logs/'
+## 🛠️ TODO
+- Automate AI training based on Snowflake data.
+- Optimize costs by scheduling Airflow runs efficiently.
